@@ -1,0 +1,19 @@
+[package]
+name = "rembg-cpu-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+ort = "1.16.2"  # ONNX Runtime
+image = { version = "0.24", features = ["png"] }
+ndarray = "0.15"
+anyhow = "1.0"
+bytes = "1.0"
+uuid = { version = "1.7", features = ["v4"] }
