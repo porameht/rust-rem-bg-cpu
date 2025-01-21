@@ -1,6 +1,6 @@
 use axum::{
     extract::{State, Multipart},
-    response::{IntoResponse, Response},
+    response::Response,
     http::{header, StatusCode},
 };
 use std::sync::Arc;
@@ -16,7 +16,6 @@ pub async fn remove_background(
             let data = field.bytes().await.map_err(|e| AppError::ImageProcessingError(e.to_string()))?;
             let result = processor.remove_background(&data).await?;
             
-            // Return the image data with proper headers
             return Ok(Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "image/png")
