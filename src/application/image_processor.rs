@@ -1,30 +1,28 @@
 use crate::domain::AppError;
-use ort::{Environment, Session, SessionBuilder, Value};
+use ort::{session::Session, value::Tensor, Error as OrtError};
 use image::{ImageBuffer, Rgba};
-use ndarray::{Array4, ArrayView4};
+use ndarray::{Array4};
 use std::sync::Arc;
 
 pub struct ImageProcessor {
     session: Session,
-    _environment: Arc<Environment>,
 }
 
 impl ImageProcessor {
     pub fn new() -> Result<Self, AppError> {
-        let environment = Arc::new(Environment::builder()
+        // Initialize the ONNX Runtime environment
+        ort::init()
             .with_name("rembg")
-            .build()
-            .map_err(|e| AppError::ModelError(e.to_string()))?);
-
-        let session = SessionBuilder::new(&environment)
-            .map_err(|e| AppError::ModelError(e.to_string()))?
-            .with_model_from_file("models/u2net.onnx")
+            .commit()
             .map_err(|e| AppError::ModelError(e.to_string()))?;
 
-        Ok(Self { 
-            session,
-            _environment: environment,
-        })
+        // Create session using the new builder pattern
+        let session = Session::builder()
+            .map_err(|e| AppError::ModelError(e.to_string()))?
+            .commit_from_file("models/u2net.onnx")
+            .map_err(|e| AppError::ModelError(e.to_string()))?;
+
+        Ok(Self { session })
     }
 
     pub async fn remove_background(&self, image_data: &[u8]) -> Result<Vec<u8>, AppError> {
@@ -72,24 +70,23 @@ impl ImageProcessor {
             }
         }
 
-        // Create input Value for the model
-        let input_tensor = input_tensor.into_dyn();
-        let standard_tensor = input_tensor.as_standard_layout();
-        let input_values = vec![Value::from_array(self.session.allocator(), &standard_tensor)
-            .map_err(|e| AppError::ModelError(e.to_string()))?];
+        // Convert to owned array in standard layout and create tensor
+        let input_array = input_tensor.as_standard_layout();
 
-        // Run inference
+        let shape = vec![1i64, 3, 320, 320];
+        let data: Vec<f32> = input_array.as_slice().unwrap().to_vec();
+        let tensor = Tensor::from_array((shape, data))
+            .map_err(|e| AppError::ModelError(e.to_string()))?;
+
+        // Run inference using the new inputs! macro
         let outputs = self.session
-            .run(input_values)
+            .run(ort::inputs![tensor]?)
             .map_err(|e| AppError::ModelError(e.to_string()))?;
 
-        // Process the output mask
-        let output_tensor = outputs[0]
-            .try_extract::<f32>()
+        // Extract output tensor using the new API
+        let output_view = outputs[0]
+            .try_extract_tensor::<f32>()
             .map_err(|e| AppError::ModelError(e.to_string()))?;
-        
-        let output_view = output_tensor.view();
-        let output_shape = output_view.shape();
         
         // Create output image with transparency, using original dimensions
         let mut output_img = ImageBuffer::new(orig_width, orig_height);
@@ -130,4 +127,10 @@ impl ImageProcessor {
 
         Ok(output_buffer)
     }
-} 
+}
+
+impl From<OrtError> for AppError {
+    fn from(error: OrtError) -> Self {
+        AppError::ModelError(error.to_string())
+    }
+}
