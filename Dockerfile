@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:latest as builder
+FROM rust:1.84.0 as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,7 +20,7 @@ RUN mkdir -p models && \
 RUN cargo build --release
 
 # Production stage
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Install OpenSSL, ONNX Runtime, and other dependencies
 RUN apt-get update && apt-get install -y \
