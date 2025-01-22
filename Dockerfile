@@ -17,7 +17,7 @@ RUN mkdir -p models && \
     wget -O models/u2net.onnx https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx
 
 # Build dependencies - this is the caching Docker layer!
-RUN cargo build --release
+RUN cargo build --release --locked
 
 # Production stage
 FROM debian:bookworm-slim
@@ -25,9 +25,8 @@ FROM debian:bookworm-slim
 # Install OpenSSL, ONNX Runtime, and other dependencies
 RUN apt-get update && apt-get install -y \
     ca-certificates \
-    libssl-dev \
+    libssl3 \
     libgomp1 \
-    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user
