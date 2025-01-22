@@ -1,54 +1,60 @@
 # Build stage
-FROM rust:1.84.0 as builder
+FROM rust:1.84.0-slim-bookworm as builder
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
+# Combine all build dependencies installation and cleanup in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     wget \
-    && rm -rf /var/lib/apt/lists/*
+    g++ \
+    libstdc++-11-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Create a new empty shell project
 WORKDIR /usr/src/app
-COPY . .
 
-# Download the model file
+# Copy only necessary files for build
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+
+# Create a dummy main.rs to cache dependencies
 RUN mkdir -p models && \
-    wget -O models/u2net.onnx https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx
+    wget -O models/u2net.onnx https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx && \
+    cargo build --release --locked && \
+    rm -rf target/release/deps/rembg_cpu_rust*
 
-# Build dependencies - this is the caching Docker layer!
-RUN cargo build --release --locked
+# Build the actual binary
+COPY . .
+RUN cargo build --release --locked && \
+    strip target/release/rembg-cpu-rust
 
-# Production stage
+# Runtime stage
 FROM debian:bookworm-slim
 
-# Install OpenSSL, ONNX Runtime, and other dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
+# Combine all runtime dependencies installation and cleanup in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user
-RUN useradd -ms /bin/bash appuser
+    ca-certificates \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 WORKDIR /app
 
-# Copy the binary from builder
-COPY --from=builder /usr/src/app/target/release/rembg-cpu-rust /app/rembg-cpu-rust
-COPY --from=builder /usr/src/app/models/u2net.onnx /app/models/u2net.onnx
+# Copy only the necessary files from builder
+COPY --from=builder /usr/src/app/target/release/rembg-cpu-rust /app/
+COPY --from=builder /usr/src/app/models/u2net.onnx /app/models/
 
-# Use the non-root user
-RUN chown -R appuser:appuser /app
+# Create a non-root user and set permissions
+RUN useradd -r -s /bin/false appuser && \
+    chown -R appuser:appuser /app
 USER appuser
 
-# Expose port 80
+# Configure the application
 EXPOSE 80
-
-# Set environment variables
-ENV RUST_LOG=info
-ENV PORT=80
-ENV LD_LIBRARY_PATH=/usr/lib
+ENV RUST_LOG=info \
+    PORT=80
 
 # Run the binary
 CMD ["./rembg-cpu-rust"]
