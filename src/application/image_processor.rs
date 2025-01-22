@@ -20,7 +20,7 @@ impl ImageProcessor {
         // Create session using the new builder pattern
         let session = Session::builder()
             .map_err(|e| AppError::ModelError(e.to_string()))?
-            .commit_from_file("models/u2net.onnx")
+            .commit_from_file("models/silueta.onnx")
             .map_err(|e| AppError::ModelError(e.to_string()))?;
 
         Ok(Self { session })

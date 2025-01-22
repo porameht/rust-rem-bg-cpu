@@ -1,2 +1,3 @@
 /target
 models/u2net.onnx
+models/silueta.onnx

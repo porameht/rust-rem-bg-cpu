@@ -19,7 +19,7 @@ COPY src ./src
 
 # Create a dummy main.rs to cache dependencies
 RUN mkdir -p models && \
-    wget -O models/u2net.onnx https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx && \
+    wget -O models/silueta.onnx https://github.com/danielgatis/rembg/releases/download/v0.0.0/silueta.onnx && \
     cargo build --release --locked && \
     rm -rf target/release/deps/rembg_cpu_rust*
 
@@ -44,7 +44,7 @@ WORKDIR /app
 
 # Copy only the necessary files from builder
 COPY --from=builder /usr/src/app/target/release/rembg-cpu-rust /app/
-COPY --from=builder /usr/src/app/models/u2net.onnx /app/models/
+COPY --from=builder /usr/src/app/models/silueta.onnx /app/models/
 
 # Create a non-root user and set permissions
 RUN useradd -r -s /bin/false appuser && \
