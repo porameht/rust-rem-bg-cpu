@@ -17,3 +17,9 @@ impl IntoResponse for AppError {
         (status, message).into_response()
     }
 } 
+
+pub struct ErrorMessages;
+
+impl ErrorMessages {
+    pub const FAILED_TO_INITIALIZE_IMAGE_PROCESSOR: &'static str = "Failed to initialize image processor";
+}

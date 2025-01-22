@@ -1,6 +1,6 @@
 use ort::{session::{Session, SessionOutputs}, value::Tensor, Error as OrtError};
 use ndarray::ArrayView4;
-use crate::domain::AppError;
+use crate::domain::{AppError, ImageConstants};
 
 pub struct ModelInference {
     session: Session,
@@ -9,7 +9,7 @@ pub struct ModelInference {
 impl ModelInference {
     pub fn new(model_path: &str) -> Result<Self, AppError> {
         ort::init()
-            .with_name("rembg")
+            .with_name(ImageConstants::ORT_NAME)
             .commit()
             .map_err(|e| AppError::ModelError(e.to_string()))?;
 

@@ -1,4 +1,4 @@
-use crate::domain::AppError;
+use crate::domain::{AppError, constants::ImageConstants};
 use super::{preprocessing::ImagePreprocessor, inference::ModelInference, postprocessing::ImagePostprocessor};
 
 pub struct ImageProcessor {
@@ -8,12 +8,10 @@ pub struct ImageProcessor {
 }
 
 impl ImageProcessor {
-    const PIXEL_SIZE: u32 = 320;
-
     pub fn new() -> Result<Self, AppError> {
         Ok(Self {
-            preprocessor: ImagePreprocessor::new(Self::PIXEL_SIZE),
-            inference: ModelInference::new("models/silueta.onnx")?,
+            preprocessor: ImagePreprocessor::new(ImageConstants::INFERENCE_PIXEL_SIZE),
+            inference: ModelInference::new(ImageConstants::SILUETA_MODEL_PATH)?,
             postprocessor: ImagePostprocessor::new(),
         })
     }

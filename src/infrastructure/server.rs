@@ -7,15 +7,16 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use crate::application::image_processor::ImageProcessor;
 use crate::presentation::handlers;
+use crate::domain::{ServerConstants, ErrorMessages};
 
 pub async fn create_app() -> Router {
     let image_processor = Arc::new(
-        ImageProcessor::new().expect("Failed to initialize image processor")
+        ImageProcessor::new().expect(ErrorMessages::FAILED_TO_INITIALIZE_IMAGE_PROCESSOR)
     );
 
     Router::new()
-        .route("/api/rem-bg", post(handlers::remove_background))
+        .route(ServerConstants::PATH_REMOVE_BACKGROUND, post(handlers::remove_background))
         .layer(CorsLayer::permissive())
-        .layer(DefaultBodyLimit::max(1024 * 1024 * 10)) // 10MB limit
+        .layer(DefaultBodyLimit::max(ServerConstants::MAX_BODY_SIZE))
         .with_state(image_processor)
 } 
