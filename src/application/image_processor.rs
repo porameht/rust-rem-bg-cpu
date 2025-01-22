@@ -1,7 +1,8 @@
 use crate::domain::AppError;
-use ort::{session::Session, value::Tensor, Error as OrtError};
+use ort::{session::{Session, SessionOutputs}, value::Tensor, Error as OrtError};
 use image::{ImageBuffer, Rgba, DynamicImage};
 use ndarray::Array4;
+
 
 pub struct ImageProcessor {
     session: Session,
@@ -88,7 +89,47 @@ impl ImageProcessor {
         input_tensor
     }
 
+    fn create_tensor(&self, input_array: ndarray::ArrayView4<f32>) -> Result<Tensor<f32>, AppError> {
+        let shape = vec![1i64, 3, 320, 320];
+        let data: Vec<f32> = input_array.as_slice().unwrap().to_vec();
+        Tensor::from_array((shape, data))
+            .map_err(|e| AppError::ModelError(e.to_string()))
+    }
+    
+    fn run_inference(&self, tensor: Tensor<f32>) -> Result<SessionOutputs, AppError> {
+        let outputs = self.session
+            .run(ort::inputs![tensor]?)
+            .map_err(|e| AppError::ModelError(e.to_string()))?;
 
+        Ok(outputs)
+    }
+
+    fn apply_scaled_mark(&self, orig_width: u32, orig_height: u32, 
+                        scaled_img: &ImageBuffer<image::Rgba<u8>, Vec<u8>>, 
+                        scaled_mask: &ImageBuffer<image::Luma<u8>, Vec<u8>>, 
+                        output_img: &mut ImageBuffer<image::Rgba<u8>, Vec<u8>>) {
+         for y in 0..orig_height {
+            for x in 0..orig_width {
+                let original_pixel = scaled_img.get_pixel(x, y);
+                let mask_value = scaled_mask.get_pixel(x, y)[0];
+                output_img.put_pixel(x, y, Rgba([
+                    original_pixel[0],
+                    original_pixel[1],
+                    original_pixel[2],
+                    mask_value,
+                ]));
+            }
+        }
+    }
+
+    fn encode_image(&self, image: &ImageBuffer<image::Rgba<u8>, Vec<u8>>) -> Result<Vec<u8>, AppError> {
+        let mut output_buffer = Vec::new();
+        image::DynamicImage::ImageRgba8(image.clone())
+            .write_to(&mut std::io::Cursor::new(&mut output_buffer), image::ImageOutputFormat::Png)
+            .map_err(|e| AppError::ImageProcessingError(e.to_string()))?;
+        Ok(output_buffer)
+    }
+    
     pub async fn remove_background(&self, image_data: &[u8]) -> Result<Vec<u8>, AppError> {
         // Load the input image
         let img = self.load_input_image(image_data)?;
@@ -115,15 +156,10 @@ impl ImageProcessor {
 
         // Convert to owned array in standard layout and create tensor
         let input_array = input_tensor.as_standard_layout();
-        let shape = vec![1i64, 3, 320, 320];
-        let data: Vec<f32> = input_array.as_slice().unwrap().to_vec();
-        let tensor = Tensor::from_array((shape, data))
-            .map_err(|e| AppError::ModelError(e.to_string()))?;
+        let tensor = self.create_tensor(input_array.view())?;
 
         // Run inference using the new inputs! macro
-        let outputs = self.session
-            .run(ort::inputs![tensor]?)
-            .map_err(|e| AppError::ModelError(e.to_string()))?;
+        let outputs = self.run_inference(tensor)?;
 
         // Extract output tensor using the new API
         let output_view = outputs[0]
@@ -147,25 +183,10 @@ impl ImageProcessor {
             image::Luma([(mask_value * 255.0) as u8])
         });
 
-        // Apply the scaled mask
-        for y in 0..orig_height {
-            for x in 0..orig_width {
-                let original_pixel = scaled_img.get_pixel(x, y);
-                let mask_value = scaled_mask.get_pixel(x, y)[0];
-                output_img.put_pixel(x, y, Rgba([
-                    original_pixel[0],
-                    original_pixel[1],
-                    original_pixel[2],
-                    mask_value,
-                ]));
-            }
-        }
+        self.apply_scaled_mark(orig_width, orig_height, &scaled_img, &scaled_mask, &mut output_img);
 
         // Encode the result as PNG
-        let mut output_buffer = Vec::new();
-        image::DynamicImage::ImageRgba8(output_img)
-            .write_to(&mut std::io::Cursor::new(&mut output_buffer), image::ImageOutputFormat::Png)
-            .map_err(|e| AppError::ImageProcessingError(e.to_string()))?;
+        let output_buffer = self.encode_image(&output_img)?;
 
         Ok(output_buffer)
     }

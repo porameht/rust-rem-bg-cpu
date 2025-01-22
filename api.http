@@ -3,8 +3,8 @@ POST http://localhost:8000/api/rem-bg
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="image"; filename="sample1.jpg"
+Content-Disposition: form-data; name="image"; filename="sample.jpg"
 Content-Type: image/jpeg
 
-< ./sample1.jpg
+< ./sample.jpg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 

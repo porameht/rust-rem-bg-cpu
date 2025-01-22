@@ -52,9 +52,9 @@ RUN useradd -r -s /bin/false appuser && \
 USER appuser
 
 # Configure the application
-EXPOSE 80
+EXPOSE 8000
 ENV RUST_LOG=info \
-    PORT=80
+    PORT=8000
 
 # Run the binary
 CMD ["./rembg-cpu-rust"]
