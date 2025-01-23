@@ -1058,6 +1058,7 @@ dependencies = [
  "lab",
  "ndarray 0.15.6",
  "ort",
+ "rayon",
  "serde",
  "serde_json",
  "tokio",

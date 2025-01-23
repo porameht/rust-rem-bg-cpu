@@ -12,7 +12,7 @@ impl ImageProcessor {
         Ok(Self {
             preprocessor: ImagePreprocessorV2::new(ImageConstants::INFERENCE_PIXEL_SIZE),
             inference: ModelInferenceV2::new(ImageConstants::SILUETA_MODEL_PATH)?,
-            postprocessor: ImagePostprocessorV2::new(),
+            postprocessor: ImagePostprocessorV2::new(ImageConstants::INFERENCE_PIXEL_SIZE),
         })
     }
     

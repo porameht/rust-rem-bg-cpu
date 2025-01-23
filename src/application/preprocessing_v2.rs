@@ -15,29 +15,54 @@ impl ImagePreprocessorV2 {
         let (orig_width, orig_height) = (img.width(), img.height());
         let (resize_width, resize_height) = self.calculate_dimensions(orig_width, orig_height);
         
-        let resized = img.resize_exact(resize_width, resize_height, image::imageops::FilterType::Lanczos3);
+        // Use a faster resizing filter
+        let resized = img.resize_exact(resize_width, resize_height, image::imageops::FilterType::Triangle);
         let rgb_img = resized.to_rgb8();
         
-        // Create tensor with RGB channels (3 channels)
-        let mut input_tensor = Array4::zeros([1, 3, self.pixel_size as usize, self.pixel_size as usize]);
+        // Convert to usize once to minimize casting
+        let resize_width_usize = resize_width as usize;
+        let resize_height_usize = resize_height as usize;
         let (start_x, start_y) = self.calculate_start_coordinates(resize_width, resize_height);
+        let (start_x_usize, start_y_usize) = (start_x as usize, start_y as usize);
+        let pixel_size_usize = self.pixel_size as usize;
         
-        // Fill tensor with normalized values
-        for y in 0..resize_height {
-            for x in 0..resize_width {
-                let tensor_x = (start_x + x) as usize;
-                let tensor_y = (start_y + y) as usize;
-                
-                let pixel = rgb_img.get_pixel(x, y);
-                
-                // Normalize using same values as Python u2net (pixel_value / 255.0 - mean) / std 
-                // reduce effect of different brightness in image
-                // Red (R): (x - 0.485) / 0.229
-                // Green (G): (x - 0.456) / 0.224
-                // Blue (B): (x - 0.406) / 0.225
-                input_tensor[[0, 0, tensor_y, tensor_x]] = (pixel[0] as f32 / 255.0 - 0.485) / 0.229;
-                input_tensor[[0, 1, tensor_y, tensor_x]] = (pixel[1] as f32 / 255.0 - 0.456) / 0.224;
-                input_tensor[[0, 2, tensor_y, tensor_x]] = (pixel[2] as f32 / 255.0 - 0.406) / 0.225;
+        // Initialize the tensor with zeros
+        let mut input_tensor = Array4::zeros([1, 3, pixel_size_usize, pixel_size_usize]);
+        
+        // Precompute normalization constants
+        const SCALE_R: f32 = 1.0 / (255.0 * 0.229);
+        const OFFSET_R: f32 = -0.485 / 0.229;
+        const SCALE_G: f32 = 1.0 / (255.0 * 0.224);
+        const OFFSET_G: f32 = -0.456 / 0.224;
+        const SCALE_B: f32 = 1.0 / (255.0 * 0.225);
+        const OFFSET_B: f32 = -0.406 / 0.225;
+        
+        // Access the raw pixel buffer
+        let buffer = rgb_img.as_raw();
+        
+        // Iterate over each pixel efficiently using chunks_exact
+        for (i, pixel) in buffer.chunks_exact(3).enumerate() {
+            let x = i % resize_width_usize;
+            let y = i / resize_width_usize;
+            
+            let tensor_x = start_x_usize + x;
+            let tensor_y = start_y_usize + y;
+            
+            // Unsafe access to avoid bounds checks (safe due to chunks_exact)
+            let r = unsafe { pixel.get_unchecked(0) };
+            let g = unsafe { pixel.get_unchecked(1) };
+            let b = unsafe { pixel.get_unchecked(2) };
+            
+            // Compute normalized values using precomputed constants
+            let normalized_r = (*r as f32) * SCALE_R + OFFSET_R;
+            let normalized_g = (*g as f32) * SCALE_G + OFFSET_G;
+            let normalized_b = (*b as f32) * SCALE_B + OFFSET_B;
+            
+            // Assign values directly using unchecked access for performance
+            unsafe {
+                *input_tensor.uget_mut([0, 0, tensor_y, tensor_x]) = normalized_r;
+                *input_tensor.uget_mut([0, 1, tensor_y, tensor_x]) = normalized_g;
+                *input_tensor.uget_mut([0, 2, tensor_y, tensor_x]) = normalized_b;
             }
         }
 
@@ -57,4 +82,4 @@ impl ImagePreprocessorV2 {
     fn calculate_start_coordinates(&self, width: u32, height: u32) -> (u32, u32) {
         ((self.pixel_size - width) / 2, (self.pixel_size - height) / 2)
     }
-} 
+}
