@@ -8,3 +8,49 @@ Content-Type: image/jpeg
 
 < ./sample.jpg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+
+### Test Background Removal API
+POST https://rust-rem-bg-cpu.onrender.com/api/rem-bg
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="sample1.jpg"
+Content-Type: image/jpeg
+
+< ./sample1.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+
+### Test Background Removal API
+POST http://localhost:8000/api/rem-bg
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="sample2.jpg"
+Content-Type: image/jpeg
+
+< ./sample2.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+
+
+
+### Test Background Removal API
+POST http://localhost:8000/api/rem-bg
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+
+### Test Background Removal API
+POST http://localhost:8000/api/rem-bg
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="sample4.jpg"
+Content-Type: image/jpeg
+
+< ./sample4.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
