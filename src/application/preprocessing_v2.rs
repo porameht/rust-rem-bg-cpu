@@ -21,7 +21,6 @@ impl ImagePreprocessorV2 {
         
         // Convert to usize once to minimize casting
         let resize_width_usize = resize_width as usize;
-        let resize_height_usize = resize_height as usize;
         let (start_x, start_y) = self.calculate_start_coordinates(resize_width, resize_height);
         let (start_x_usize, start_y_usize) = (start_x as usize, start_y as usize);
         let pixel_size_usize = self.pixel_size as usize;
