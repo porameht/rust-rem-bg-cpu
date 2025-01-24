@@ -26,7 +26,6 @@ impl ImagePostprocessorV2 {
         let img_rgba = img.to_rgba8();
         let rgba_buffer = img_rgba.as_raw();
 
-        // Precompute values for efficiency
         let orig_width_usize = orig_width as usize;
         let total_pixels = orig_width_usize * orig_height as usize;
         let resize_width_f32 = resize_width as f32;
@@ -36,7 +35,6 @@ impl ImagePostprocessorV2 {
         let x_scale = 1.0 / orig_width as f32;
         let y_scale = 1.0 / orig_height as f32;
 
-        // Preallocate and parallel process the output buffer
         let mut rgba_data = vec![0u8; total_pixels * 4];
         let outputs_slice = outputs.as_slice();
 
@@ -47,24 +45,20 @@ impl ImagePostprocessorV2 {
                 let x = i % orig_width_usize;
                 let y = i / orig_width_usize;
 
-                // Calculate mask position with floor for safety
                 let mask_x = (x as f32 * x_scale * resize_width_f32).floor() as usize + start_x_usize;
                 let mask_y = (y as f32 * y_scale * resize_height_f32).floor() as usize + start_y_usize;
 
-                // Get mask value with bounds checking
                 let mask_value = outputs_slice
                     .get(mask_y * pixel_size_usize + mask_x)
                     .copied()
                     .unwrap_or(0.0)
                     .clamp(0.0, 1.0);
 
-                // Direct buffer access for original pixel data
                 let pixel_start = i * 4;
                 chunk[0] = rgba_buffer[pixel_start];
                 chunk[1] = rgba_buffer[pixel_start + 1];
                 chunk[2] = rgba_buffer[pixel_start + 2];
 
-                // Optimized alpha calculation using arithmetic
                 chunk[3] = match mask_value {
                     v if v > 0.9 => 255,
                     v if v < 0.1 => 0,

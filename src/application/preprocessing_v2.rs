@@ -15,20 +15,16 @@ impl ImagePreprocessorV2 {
         let (orig_width, orig_height) = (img.width(), img.height());
         let (resize_width, resize_height) = self.calculate_dimensions(orig_width, orig_height);
         
-        // Use a faster resizing filter
         let resized = img.resize_exact(resize_width, resize_height, image::imageops::FilterType::Triangle);
         let rgb_img = resized.to_rgb8();
         
-        // Convert to usize once to minimize casting
         let resize_width_usize = resize_width as usize;
         let (start_x, start_y) = self.calculate_start_coordinates(resize_width, resize_height);
         let (start_x_usize, start_y_usize) = (start_x as usize, start_y as usize);
         let pixel_size_usize = self.pixel_size as usize;
         
-        // Initialize the tensor with zeros
         let mut input_tensor = Array4::zeros([1, 3, pixel_size_usize, pixel_size_usize]);
         
-        // Precompute normalization constants
         const SCALE_R: f32 = 1.0 / (255.0 * 0.229);
         const OFFSET_R: f32 = -0.485 / 0.229;
         const SCALE_G: f32 = 1.0 / (255.0 * 0.224);
@@ -36,10 +32,8 @@ impl ImagePreprocessorV2 {
         const SCALE_B: f32 = 1.0 / (255.0 * 0.225);
         const OFFSET_B: f32 = -0.406 / 0.225;
         
-        // Access the raw pixel buffer
         let buffer = rgb_img.as_raw();
         
-        // Iterate over each pixel efficiently using chunks_exact
         for (i, pixel) in buffer.chunks_exact(3).enumerate() {
             let x = i % resize_width_usize;
             let y = i / resize_width_usize;
@@ -47,17 +41,14 @@ impl ImagePreprocessorV2 {
             let tensor_x = start_x_usize + x;
             let tensor_y = start_y_usize + y;
             
-            // Unsafe access to avoid bounds checks (safe due to chunks_exact)
             let r = unsafe { pixel.get_unchecked(0) };
             let g = unsafe { pixel.get_unchecked(1) };
             let b = unsafe { pixel.get_unchecked(2) };
             
-            // Compute normalized values using precomputed constants
             let normalized_r = (*r as f32) * SCALE_R + OFFSET_R;
             let normalized_g = (*g as f32) * SCALE_G + OFFSET_G;
             let normalized_b = (*b as f32) * SCALE_B + OFFSET_B;
             
-            // Assign values directly using unchecked access for performance
             unsafe {
                 *input_tensor.uget_mut([0, 0, tensor_y, tensor_x]) = normalized_r;
                 *input_tensor.uget_mut([0, 1, tensor_y, tensor_x]) = normalized_g;
