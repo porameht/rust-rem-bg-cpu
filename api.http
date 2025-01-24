@@ -10,7 +10,7 @@ Content-Type: image/jpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
 
 ### Test Background Removal API
-POST https://rust-rem-bg-cpu.onrender.com/api/rem-bg
+POST http://localhost:8000/api/rem-bg
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -21,7 +21,7 @@ Content-Type: image/jpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
 
 ### Test Background Removal API
-POST https://rust-rem-bg-cpu.onrender.com/api/rem-bg
+POST http://localhost:8000/api/rem-bg
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -32,7 +32,7 @@ Content-Type: image/jpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
 
 ### Test Background Removal API
-POST https://rust-rem-bg-cpu.onrender.com/api/rem-bg
+POST http://localhost:8000/api/rem-bg
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -43,7 +43,7 @@ Content-Type: image/jpeg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
 
 ### Test Background Removal API
-POST https://rust-rem-bg-cpu.onrender.com/api/rem-bg
+POST http://localhost:8000/api/rem-bg
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW

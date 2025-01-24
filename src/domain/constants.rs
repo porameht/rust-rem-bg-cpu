@@ -15,6 +15,10 @@ impl ServerConstants {
     
     pub const MAX_BODY_SIZE: usize = 1024 * 1024 * 10;
 
+    pub const CONTENT_TYPE_PNG: &'static str = "image/png";
+    pub const CONTENT_TYPE_JPEG: &'static str = "image/jpeg";
+    pub const CONTENT_TYPE_JPG: &'static str = "image/jpg";
+
     pub const HEADER_CONTENT_TYPE_VALUE: &'static str = "image/png";
 
     pub const PATH_REMOVE_BACKGROUND: &'static str = "/api/rem-bg";

@@ -20,6 +20,17 @@ pub async fn remove_background(
         AppError::ImageProcessingError(e.to_string())
     })? {
         if field.name() == Some(ServerConstants::FIELD_IMAGE) {
+            if let Some(content_type) = field.content_type() {
+                if content_type != ServerConstants::CONTENT_TYPE_PNG && 
+                   content_type != ServerConstants::CONTENT_TYPE_JPEG && 
+                   content_type != ServerConstants::CONTENT_TYPE_JPG {
+                    tracing::error!("Unsupported image format: {}", content_type);
+                    return Err(AppError::ImageProcessingError(
+                        "Unsupported image format. Only PNG and JPEG/JPG are supported".to_string()
+                    ));
+                }
+            }
+
             let data = field.bytes().await.map_err(|e| {
                 tracing::error!("Failed to read image data: {}", e);
                 AppError::ImageProcessingError(e.to_string())
