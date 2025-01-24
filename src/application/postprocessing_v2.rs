@@ -38,33 +38,66 @@ impl ImagePostprocessorV2 {
         let mut rgba_data = vec![0u8; total_pixels * 4];
         let outputs_slice = outputs.as_slice();
 
-        rgba_data
-            .par_chunks_exact_mut(4)
-            .enumerate()
-            .for_each(|(i, chunk)| {
-                let x = i % orig_width_usize;
-                let y = i / orig_width_usize;
+        // First pass: Calculate raw alpha values with bilinear interpolation
+        let mut alpha_buffer = vec![0f32; total_pixels];
+        alpha_buffer.par_iter_mut().enumerate().for_each(|(i, alpha)| {
+            let x = i % orig_width_usize;
+            let y = i / orig_width_usize;
 
-                let mask_x = (x as f32 * x_scale * resize_width_f32).floor() as usize + start_x_usize;
-                let mask_y = (y as f32 * y_scale * resize_height_f32).floor() as usize + start_y_usize;
+            // Calculate exact mask position with floating point precision
+            let mask_x = (x as f32 * x_scale * resize_width_f32) + start_x as f32;
+            let mask_y = (y as f32 * y_scale * resize_height_f32) + start_y as f32;
 
-                let mask_value = outputs_slice
-                    .get(mask_y * pixel_size_usize + mask_x)
-                    .copied()
-                    .unwrap_or(0.0)
-                    .clamp(0.0, 1.0);
+            // Bilinear interpolation
+            let x0 = mask_x.floor() as usize;
+            let y0 = mask_y.floor() as usize;
+            let x1 = (x0 + 1).min(pixel_size_usize - 1);
+            let y1 = (y0 + 1).min(pixel_size_usize - 1);
+            
+            let dx = mask_x - x0 as f32;
+            let dy = mask_y - y0 as f32;
 
-                let pixel_start = i * 4;
-                chunk[0] = rgba_buffer[pixel_start];
-                chunk[1] = rgba_buffer[pixel_start + 1];
-                chunk[2] = rgba_buffer[pixel_start + 2];
+            let get_value = |x, y| outputs_slice.get(y * pixel_size_usize + x).copied().unwrap_or(0.0);
+            
+            let v00 = get_value(x0, y0);
+            let v01 = get_value(x0, y1);
+            let v10 = get_value(x1, y0);
+            let v11 = get_value(x1, y1);
+            
+            let interpolated = 
+                v00 * (1.0 - dx) * (1.0 - dy) +
+                v10 * dx * (1.0 - dy) +
+                v01 * (1.0 - dx) * dy +
+                v11 * dx * dy;
 
-                chunk[3] = match mask_value {
-                    v if v > 0.9 => 255,
-                    v if v < 0.1 => 0,
-                    v => (v * 255.0) as u8,
-                };
-            });
+            *alpha = interpolated.clamp(0.0, 1.0);
+        });
+
+        // Second pass: Edge detection and alpha refinement
+        rgba_data.par_chunks_exact_mut(4).enumerate().for_each(|(i, chunk)| {
+            let x = i % orig_width_usize;
+            let y = i / orig_width_usize;
+            
+            // Edge detection using Laplace operator
+            let edge_score = self.calculate_edge_score(x, y, &alpha_buffer, orig_width_usize, orig_height as usize);
+            
+            let alpha = alpha_buffer[i];
+            let smoothed_alpha = if edge_score > 0.1 {
+                // Use cubic interpolation for edges
+                let t = ((alpha - 0.2) / 0.6).clamp(0.0, 1.0);
+                (t * t * (3.0 - 2.0 * t)) * 0.8 + alpha * 0.2
+            } else {
+                // Smootherstep for non-edge areas
+                let t = ((alpha - 0.1) / 0.8).clamp(0.0, 1.0);
+                t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+            };
+
+            let pixel_start = i * 4;
+            chunk[0] = rgba_buffer[pixel_start];
+            chunk[1] = rgba_buffer[pixel_start + 1];
+            chunk[2] = rgba_buffer[pixel_start + 2];
+            chunk[3] = (smoothed_alpha * 255.0).round() as u8;
+        });
 
         encoder.write_image(
             &rgba_data,
@@ -74,5 +107,21 @@ impl ImagePostprocessorV2 {
         ).map_err(|e| AppError::ImageProcessingError(e.to_string()))?;
 
         Ok(output_buffer)
+    }
+
+    fn calculate_edge_score(&self, x: usize, y: usize, alpha: &[f32], width: usize, height: usize) -> f32 {
+        let get_alpha = |dx: i32, dy: i32| {
+            let nx = (x as i32 + dx).clamp(0, width as i32 - 1) as usize;
+            let ny = (y as i32 + dy).clamp(0, height as i32 - 1) as usize;
+            alpha[ny * width + nx]
+        };
+
+        // Laplace edge detection kernel
+        let score = 
+            -1.0 * get_alpha(-1, -1) + -1.0 * get_alpha(0, -1) + -1.0 * get_alpha(1, -1) +
+            -1.0 * get_alpha(-1, 0) +  8.0 * get_alpha(0, 0) + -1.0 * get_alpha(1, 0) +
+            -1.0 * get_alpha(-1, 1) + -1.0 * get_alpha(0, 1) + -1.0 * get_alpha(1, 1);
+
+        score.abs().min(1.0)
     }
 }
