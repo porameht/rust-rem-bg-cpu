@@ -22,6 +22,8 @@ impl ServerConstants {
     pub const HEADER_CONTENT_TYPE_VALUE: &'static str = "image/png";
 
     pub const PATH_REMOVE_BACKGROUND: &'static str = "/api/rem-bg";
+    pub const PATH_BATCH_REMOVE_BACKGROUND: &'static str = "/api/batch-rem-bg";
 
     pub const FIELD_IMAGE: &'static str = "image";
+    pub const FIELD_IMAGES: &'static str = "images";
 }

@@ -52,3 +52,51 @@ Content-Type: image/jpeg
 
 < ./sample4.jpg
 ------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+
+### Test Batch Background Removal API
+POST http://localhost:8000/api/batch-rem-bg
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="sample1.jpg"
+Content-Type: image/jpeg
+
+< ./sample1.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="sample2.jpg"
+Content-Type: image/jpeg
+
+< ./sample2.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+Content-Disposition: form-data; name="images"; filename="sample3.jpg"
+Content-Type: image/jpeg
+
+< ./sample3.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW-- 
+
+
