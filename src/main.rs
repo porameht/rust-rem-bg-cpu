@@ -4,7 +4,7 @@ mod infrastructure;
 mod presentation;
 
 use crate::infrastructure::server::create_app;
-use crate::domain::constants::ServerConstants;
+use crate::infrastructure::constants::InfrastructureConstants;
 
 #[tokio::main]
 async fn main() {
@@ -13,7 +13,7 @@ async fn main() {
     let app = create_app().await;
     
     let port = std::env::var("PORT")
-        .unwrap_or_else(|_| ServerConstants::DEFAULT_PORT.to_string());
+        .unwrap_or_else(|_| InfrastructureConstants::DEFAULT_PORT.to_string());
     let addr = format!("0.0.0.0:{}", port);
     
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();

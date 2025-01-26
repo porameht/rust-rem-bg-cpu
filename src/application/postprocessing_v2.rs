@@ -1,6 +1,7 @@
 use image::{DynamicImage, ImageEncoder};
 use rayon::prelude::*;
 use crate::domain::AppError;
+use crate::application::constants::{postprocessing::*, edge_detection::*};
 
 pub struct ImagePostprocessorV2 {
     pixel_size: u32,
@@ -30,8 +31,6 @@ impl ImagePostprocessorV2 {
         let total_pixels = orig_width_usize * orig_height as usize;
         let resize_width_f32 = resize_width as f32;
         let resize_height_f32 = resize_height as f32;
-        let start_x_usize = start_x as usize;
-        let start_y_usize = start_y as usize;
         let x_scale = 1.0 / orig_width as f32;
         let y_scale = 1.0 / orig_height as f32;
 
@@ -82,13 +81,13 @@ impl ImagePostprocessorV2 {
             let edge_score = self.calculate_edge_score(x, y, &alpha_buffer, orig_width_usize, orig_height as usize);
             
             let alpha = alpha_buffer[i];
-            let smoothed_alpha = if edge_score > 0.1 {
+            let smoothed_alpha = if edge_score > EDGE_DETECTION_THRESHOLD {
                 // Use cubic interpolation for edges
-                let t = ((alpha - 0.2) / 0.6).clamp(0.0, 1.0);
-                (t * t * (3.0 - 2.0 * t)) * 0.8 + alpha * 0.2
+                let t = ((alpha - EDGE_ALPHA_MIN) / EDGE_ALPHA_RANGE).clamp(0.0, 1.0);
+                (t * t * (3.0 - 2.0 * t)) * EDGE_BLEND_FACTOR + alpha * (1.0 - EDGE_BLEND_FACTOR)
             } else {
                 // Smootherstep for non-edge areas
-                let t = ((alpha - 0.1) / 0.8).clamp(0.0, 1.0);
+                let t = ((alpha - SMOOTH_ALPHA_MIN) / SMOOTH_ALPHA_RANGE).clamp(0.0, 1.0);
                 t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
             };
 
@@ -118,9 +117,9 @@ impl ImagePostprocessorV2 {
 
         // Laplace edge detection kernel
         let score = 
-            -1.0 * get_alpha(-1, -1) + -1.0 * get_alpha(0, -1) + -1.0 * get_alpha(1, -1) +
-            -1.0 * get_alpha(-1, 0) +  8.0 * get_alpha(0, 0) + -1.0 * get_alpha(1, 0) +
-            -1.0 * get_alpha(-1, 1) + -1.0 * get_alpha(0, 1) + -1.0 * get_alpha(1, 1);
+            KERNEL_SURROUNDING * get_alpha(-1, -1) + KERNEL_SURROUNDING * get_alpha(0, -1) + KERNEL_SURROUNDING * get_alpha(1, -1) +
+            KERNEL_SURROUNDING * get_alpha(-1, 0) + KERNEL_CENTER * get_alpha(0, 0) + KERNEL_SURROUNDING * get_alpha(1, 0) +
+            KERNEL_SURROUNDING * get_alpha(-1, 1) + KERNEL_SURROUNDING * get_alpha(0, 1) + KERNEL_SURROUNDING * get_alpha(1, 1);
 
         score.abs().min(1.0)
     }

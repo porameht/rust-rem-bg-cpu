@@ -1,5 +1,6 @@
 use axum::response::{IntoResponse, Response};
 use axum::http::StatusCode;
+use ort::Error as OrtError;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -23,3 +24,9 @@ pub struct ErrorMessages;
 impl ErrorMessages {
     pub const FAILED_TO_INITIALIZE_IMAGE_PROCESSOR: &'static str = "Failed to initialize image processor";
 }
+
+impl From<OrtError> for AppError {
+    fn from(error: OrtError) -> Self {
+        AppError::ModelError(error.to_string())
+    }
+} 

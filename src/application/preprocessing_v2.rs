@@ -1,6 +1,7 @@
 use image::DynamicImage;
 use ndarray::Array4;
 use crate::domain::AppError;
+use super::constants::preprocessing::*;
 
 pub struct ImagePreprocessorV2 {
     pixel_size: u32,
@@ -24,13 +25,6 @@ impl ImagePreprocessorV2 {
         let pixel_size_usize = self.pixel_size as usize;
         
         let mut input_tensor = Array4::zeros([1, 3, pixel_size_usize, pixel_size_usize]);
-        
-        const SCALE_R: f32 = 1.0 / (255.0 * 0.229);
-        const OFFSET_R: f32 = -0.485 / 0.229;
-        const SCALE_G: f32 = 1.0 / (255.0 * 0.224);
-        const OFFSET_G: f32 = -0.456 / 0.224;
-        const SCALE_B: f32 = 1.0 / (255.0 * 0.225);
-        const OFFSET_B: f32 = -0.406 / 0.225;
         
         let buffer = rgb_img.as_raw();
         

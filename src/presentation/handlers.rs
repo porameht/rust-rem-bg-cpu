@@ -5,7 +5,8 @@ use axum::{
 };
 use std::sync::Arc;
 use crate::application::image_processor::ImageProcessor;
-use crate::domain::{AppError, ServerConstants};
+use crate::domain::AppError;
+use crate::presentation::constants::PresentationConstants;
 use tracing;
 use tokio::task;
 use uuid::Uuid;
@@ -22,14 +23,14 @@ pub async fn remove_background(
         tracing::error!("Failed to process multipart form: {}", e);
         AppError::ImageProcessingError(e.to_string())
     })? {
-        if field.name() == Some(ServerConstants::FIELD_IMAGE) {
+        if field.name() == Some(PresentationConstants::FIELD_IMAGE) {
             if let Some(content_type) = field.content_type() {
-                if content_type != ServerConstants::CONTENT_TYPE_PNG && 
-                   content_type != ServerConstants::CONTENT_TYPE_JPEG && 
-                   content_type != ServerConstants::CONTENT_TYPE_JPG {
+                if content_type != PresentationConstants::CONTENT_TYPE_PNG && 
+                   content_type != PresentationConstants::CONTENT_TYPE_JPEG && 
+                   content_type != PresentationConstants::CONTENT_TYPE_JPG {
                     tracing::error!("Unsupported image format: {}", content_type);
                     return Err(AppError::ImageProcessingError(
-                        "Unsupported image format. Only PNG and JPEG/JPG are supported".to_string()
+                        PresentationConstants::ERROR_UNSUPPORTED_IMAGE_FORMAT.to_string()
                     ));
                 }
             }
@@ -44,7 +45,7 @@ pub async fn remove_background(
                     tracing::info!("Success - took {:.2?}", start_time.elapsed());
                     return Ok(Response::builder()
                         .status(StatusCode::OK)
-                        .header(header::CONTENT_TYPE, ServerConstants::HEADER_CONTENT_TYPE_VALUE)
+                        .header(header::CONTENT_TYPE, PresentationConstants::HEADER_CONTENT_TYPE_VALUE)
                         .body(axum::body::Body::from(result))
                         .unwrap());
                 }
@@ -57,7 +58,7 @@ pub async fn remove_background(
     }
     
     tracing::error!("No image found in request");
-    Err(AppError::ImageProcessingError("No image file found".to_string()))
+    Err(AppError::ImageProcessingError(PresentationConstants::ERROR_NO_IMAGE_FOUND.to_string()))
 }
 
 pub async fn batch_remove_background(
@@ -74,11 +75,11 @@ pub async fn batch_remove_background(
         tracing::error!("Failed to process multipart form: {}", e);
         AppError::ImageProcessingError(e.to_string())
     })? {
-        if field.name() == Some(ServerConstants::FIELD_IMAGES) {
+        if field.name() == Some(PresentationConstants::FIELD_IMAGES) {
             if let Some(content_type) = field.content_type() {
-                if content_type != ServerConstants::CONTENT_TYPE_PNG && 
-                   content_type != ServerConstants::CONTENT_TYPE_JPEG && 
-                   content_type != ServerConstants::CONTENT_TYPE_JPG {
+                if content_type != PresentationConstants::CONTENT_TYPE_PNG && 
+                   content_type != PresentationConstants::CONTENT_TYPE_JPEG && 
+                   content_type != PresentationConstants::CONTENT_TYPE_JPG {
                     tracing::error!("Unsupported image format: {}", content_type);
                     continue;
                 }
@@ -114,7 +115,7 @@ pub async fn batch_remove_background(
 
     if processed_images.is_empty() {
         tracing::error!("No images were successfully processed");
-        return Err(AppError::ImageProcessingError("No images were successfully processed".to_string()));
+        return Err(AppError::ImageProcessingError(PresentationConstants::ERROR_NO_IMAGES_PROCESSED.to_string()));
     }
 
     // Create a zip file containing all processed images
@@ -127,14 +128,14 @@ pub async fn batch_remove_background(
         for (index, image_data) in processed_images.iter().enumerate() {
             let filename = format!("processed_image_{}.png", index + 1);
             zip.start_file(&filename, options).map_err(|e| {
-                AppError::ImageProcessingError(format!("Failed to create zip file: {}", e))
+                AppError::ImageProcessingError(format!("{}: {}", PresentationConstants::ERROR_ZIP_CREATE, e))
             })?;
             zip.write_all(image_data).map_err(|e| {
-                AppError::ImageProcessingError(format!("Failed to write to zip file: {}", e))
+                AppError::ImageProcessingError(format!("{}: {}", PresentationConstants::ERROR_ZIP_WRITE, e))
             })?;
         }
         zip.finish().map_err(|e| {
-            AppError::ImageProcessingError(format!("Failed to finalize zip file: {}", e))
+            AppError::ImageProcessingError(format!("{}: {}", PresentationConstants::ERROR_ZIP_FINALIZE, e))
         })?;
     }
 
@@ -142,7 +143,7 @@ pub async fn batch_remove_background(
     
     Ok(Response::builder()
         .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/zip")
+        .header(header::CONTENT_TYPE, PresentationConstants::HEADER_CONTENT_TYPE_ZIP)
         .header(
             header::CONTENT_DISPOSITION,
             format!("attachment; filename=\"processed_images_{}.zip\"", Uuid::new_v4())

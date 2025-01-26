@@ -1,5 +1,6 @@
-use crate::domain::{AppError, constants::ImageConstants};
+use crate::domain::AppError;
 use super::{preprocessing_v2::ImagePreprocessorV2, inference_v2::ModelInferenceV2, postprocessing_v2::ImagePostprocessorV2};
+use crate::application::constants::image_processor::*;
 
 pub struct ImageProcessor {
     preprocessor: ImagePreprocessorV2,
@@ -10,9 +11,9 @@ pub struct ImageProcessor {
 impl ImageProcessor {
     pub fn new() -> Result<Self, AppError> {
         Ok(Self {
-            preprocessor: ImagePreprocessorV2::new(ImageConstants::INFERENCE_PIXEL_SIZE),
-            inference: ModelInferenceV2::new(ImageConstants::SILUETA_MODEL_PATH)?,
-            postprocessor: ImagePostprocessorV2::new(ImageConstants::INFERENCE_PIXEL_SIZE),
+            preprocessor: ImagePreprocessorV2::new(INFERENCE_PIXEL_SIZE),
+            inference: ModelInferenceV2::new(SILUETA_MODEL_PATH)?,
+            postprocessor: ImagePostprocessorV2::new(INFERENCE_PIXEL_SIZE),
         })
     }
     
